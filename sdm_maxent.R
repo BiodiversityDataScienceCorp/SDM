@@ -1,31 +1,44 @@
+# dependencies
+
+install.packages("dismo")
+install.packages("maptools")
+install.packages("tidyverse")
+
 library(dismo)
 library(maptools)
-data(wrld_simpl)
+library(tidyverse)
 
-# world data
+
+# world map data
 data(wrld_simpl, ISO3= c("USA", "MEX", "CAN"))
 n.america <- wrld_simpl %>% filter(ISO3 == "USA" | ISO3 == "MEX"| ISO3 == "CAN")
 
-# read data
-ranaData <- read.csv("ranaData.csv")
-ranaData <- ranaData %>% select(longitude, latidue)
+# read occurence data
+ranaData <- read_csv("ranaData.csv")
+ranaData <- ranaData %>% dplyr::select(longitude, latitude)
+ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude, latitude)
 
-ranaDataNotCoords <- read.csv("ranaData.csv") %>% select(longitude, latitude)
+# convert one data set (ranaData) to spatial
+ranaDataSpatialPts <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
 
+# climate data
+# clim <- getData("worldclim", var="bio", res=2.5) not the correct name I think for the variable
 
-# convert to spatial
-coordinates(ranaData) <- ~longitude + latidue
-foo <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
-
-# cliate data
 clim_list <- list.files(path = "wc2-5/", pattern = ".bil$", 
                         full.names = T)  # '..' leads to the path above the folder where the .rmd file is located
 
 # stacking the bioclim variables to process them at one go
 clim <- raster::stack(clim_list)
 
-plot(clim[[1]])
-plot(ranaData, add = TRUE) 
+plot(clim[[1]]) # show that it is the first env layer ( = ?)
+plot(ranaDataSpatialPts, add = TRUE) 
+
+
+
+#### its good up to here ### 
+
+
+
 
 # Determine minimum and maximum values of latidue and longitudegitude
 
