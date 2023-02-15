@@ -10,8 +10,8 @@ library(tidyverse)
 
 
 # world map data
-data(wrld_simpl, ISO3= c("USA", "MEX", "CAN"))
-n.america <- wrld_simpl %>% filter(ISO3 == "USA" | ISO3 == "MEX"| ISO3 == "CAN")
+data(wrld_simpl)
+#n.america <- wrld_simpl %>% filter(ISO3 == "USA" | ISO3 == "MEX"| ISO3 == "CAN")
 
 # read occurence data
 ranaData <- read_csv("ranaData.csv")
@@ -22,7 +22,7 @@ ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude, latit
 ranaDataSpatialPts <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
 
 # climate data
-# clim <- getData("worldclim", var="bio", res=2.5) not the correct name I think for the variable
+getData("worldclim", var="bio", res=2.5) #not the correct name I think for the variable
 
 clim_list <- list.files(path = "wc2-5/", pattern = ".bil$", 
                         full.names = T)  # '..' leads to the path above the folder where the .rmd file is located
@@ -34,11 +34,115 @@ plot(clim[[1]]) # show that it is the first env layer ( = ?)
 plot(ranaDataSpatialPts, add = TRUE) 
 
 
+# determine geographic extent of our data
+geographic.extent <- extent(x = ranaDataSpatialPts)
 
-#### its good up to here ### 
+
+# Create pseudo-absence points (making them up, using 'background' approach)
+# first we need a raster layer to make the points up on, just picking 1
+bil.files <- list.files(path = "wc2-5", 
+                        pattern = "*.bil$", 
+                        full.names = TRUE)
+mask <- raster(bil.files[1])
+
+# Random points for background (same number as our observed points)
+set.seed(19470909) # seed set so we get the same background points each time we run this code 
+
+# raster package will complain about not having coordinate reference system,
+# so we suppress that warning
+# extf makes the etent of the random points slightly larger than the given ext
+background.points <- randomPoints(mask = mask, 
+                                  n = nrow(ranaDataNotCoords),
+                                  ext = geographic.extent, 
+                                  extf = 1.25,
+                                  warn = 0)
+# add col names (can click and see right now they are x and y)
+colnames(background.points) <- c("longitude", "latitude")
+
+# separate presence data into training model and testing model
+# randomly select 70% of data for training
+selected <- sample(1:nrow(ranaDataNotCoords), (0.5 * nrow(ranaDataNotCoords)))
+
+occ_train <- ranaDataNotCoords[selected, ]  # this is the selection to be used for model training
+occ_test <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selection which will be used for model testing
+
+
+# Data for observation sites (presence and background)
+occ.train.values <- raster::extract(x = clim, y = occ_train) # why are there NA values ? all of the ranaD. has values
+occ.test.values <- raster::extract(x = clim, y = occ_test) # why are there NA values ? all of the ranaD. has values
+absence.values <- raster::extract(x = clim, y = background.points)
+
+# get the same random sample for training and testing
+set.seed(1)
+# randomly select 70% of data for training
+p.train <- sample(1:nrow(presence.values), nrow(ranaDataNotCoords) * 0.5)
+
+occ_train <- ranaDataNotCoords[selected, ]  # this is the selection to be used for model training
+occ_test <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selection which will be used for model testing
 
 
 
+# extracting env conditions for training occ from the raster
+# stack; a data frame is returned (i.e multiple columns)
+p <- raster::extract(clim, occ_train)
+# env conditions for testing occ
+p_test <- raster::extract(clim, occ_test)
+# extracting env conditions for background
+a <- raster::extract(clim, bg)
+
+
+pa <- c(rep(1, nrow(p)), rep(0, nrow(a)))
+
+# (rep(1,nrow(p)) creating the number of rows as the p data
+# set to have the number '1' as the indicator for presence;
+# rep(0,nrow(a)) creating the number of rows as the a data
+# set to have the number '0' as the indicator for absence;
+# the c combines these ones and zeros into a new vector that
+# can be added to the Maxent table data frame with the
+# environmental attributes of the presence and absence
+# locations
+pder <- as.data.frame(rbind(p, a))
+
+
+# train Maxent with tabular data
+mod <- maxent(x=pder, ## env conditions
+              p=pa,   ## 1:presence or 0:absence
+              
+              path=paste0("maxent_outputs"), ## folder for maxent output; 
+              # if we do not specify a folder R will put the results in a temp file, 
+              # and it gets messy to read those. . .
+              args=c("responsecurves") ## parameter specification
+)
+# the maxent functions runs a model in the default settings. To change these parameters,
+# you have to tell it what you want...i.e. response curves or the type of features
+
+# view the maxent model 
+mod
+plot(mod)
+response(mod)
+
+# predict to dataset
+
+# first crop environment to the local species range +/- 10 degrees
+model.extent<-extent(min(ranaData$longitude)-30,max(ranaData$longitude)+30,min(ranaData$latitude)-30,max(ranaData$latitude)+30)
+modelEnv=crop(currentEnv,model.extent)
+
+
+land <- crop(clim, (25+extent(ranaData)))
+r <- raster::predict(mod, land)
+
+
+
+plot(r)
+
+
+
+
+
+
+
+
+############ mila cleaning to here
 
 # Determine minimum and maximum values of latidue and longitudegitude
 
