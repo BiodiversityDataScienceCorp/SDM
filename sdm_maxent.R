@@ -25,8 +25,8 @@ ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude, latit
 # convert one data set (ranaData) to spatial
 ranaDataSpatialPts <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
 
-# climate data
-getData("worldclim", var="bio", res=2.5) #not the correct name I think for the variable
+# climate data: use get data only once
+# getData("worldclim", var="bio", res=2.5) #not the correct name I think for the variable
 
 clim_list <- list.files(path = "wc2-5/", pattern = ".bil$", 
                         full.names = T)  # '..' leads to the path above the folder where the .rmd file is located
@@ -71,12 +71,13 @@ occ_train <- ranaDataNotCoords[selected, ]  # this is the selection to be used f
 occ_test <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selection which will be used for model testing
 
 # Data for observation sites (presence and background), with climate data
+# run each separately, wait until finished at 2.5 gb RAM
 occ.train.values <- raster::extract(x = clim, y = occ_train) # why are there NA values ? all of the ranaD. has values
-occ.test.values <- raster::extract(x = clim, y = occ_test) # why are there NA values ? all of the ranaD. has values
+# occ.test.values <- raster::extract(x = clim, y = occ_test) # why are there NA values ? all of the ranaD. has values
 absence.values <- raster::extract(x = clim, y = background.points)
 
 occ.train.values2 <- na.omit(occ.train.values)
-occ.test.values2 <- na.omit(occ.test.values)
+#occ.test.values2 <- na.omit(occ.test.values)
 absence.values2 <- na.omit(absence.values)
 
 testing.Nas <- cbind(occ_train, occ.train.values)
@@ -118,13 +119,13 @@ presence.absence.train.env.data <- as.data.frame(rbind(occ.train.values2, absenc
 
 
 # train Maxent with tabular data
-ranaModel <- maxnet::maxnet(data = presence.absence.train.env.data, ## env conditions
-              p = presence.absence.vector,   ## 1:presence or 0:absence
-              path=paste0("maxent_outputs"), ## folder for maxent output; 
+#ranaModel <- maxnet::maxnet(data = presence.absence.train.env.data, ## env conditions
+             # p = presence.absence.vector,   ## 1:presence or 0:absence
+              #path=paste0("maxent_outputs"), ## folder for maxent output; 
               # if we do not specify a folder R will put the results in a temp file, 
               # and it gets messy to read those. . .
-              args=c("responsecurves") ## parameter specification
-)
+             # args=c("responsecurves") ## parameter specification
+#)
 # the maxent functions runs a model in the default settings. To change these parameters,
 # you have to tell it what you want...i.e. response curves or the type of features
 
@@ -142,11 +143,29 @@ plot(ranaModelDismo)
 response(ranaModelDismo)
 
 # graph it
-geographicArea <- crop(clim, (100+extent(ranaDataSpatialPts)))
+geographicArea <- crop(clim, (25+extent(ranaDataSpatialPts)))
 ranaPredictPlot <- raster::predict(ranaModelDismo, geographicArea)
 plot(ranaPredictPlot, 
-     xlim = c(-138, -115), 
-     ylim = c()
+     xlim = c(-138, -115))
+
+plot(ranaPredictPlot)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #
 # extracting env conditions for training occ from the raster
