@@ -1,6 +1,7 @@
 github.R
 wc2-5/
-maxent_outputs
+maxent_outputs/
+output/
 
 # History files
 .Rhistory

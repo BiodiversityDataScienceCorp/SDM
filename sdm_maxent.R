@@ -73,11 +73,11 @@ occ_test <- ranaDataNotCoords[-selected, ]  # this is the opposite of the select
 # Data for observation sites (presence and background), with climate data
 # run each separately, wait until finished at 2.5 gb RAM
 occ.train.values <- raster::extract(x = clim, y = occ_train) # why are there NA values ? all of the ranaD. has values
-# occ.test.values <- raster::extract(x = clim, y = occ_test) # why are there NA values ? all of the ranaD. has values
+occ.test.values <- raster::extract(x = clim, y = occ_test) # why are there NA values ? all of the ranaD. has values
 absence.values <- raster::extract(x = clim, y = background.points)
 
 occ.train.values2 <- na.omit(occ.train.values)
-#occ.test.values2 <- na.omit(occ.test.values)
+occ.test.values2 <- na.omit(occ.test.values)
 absence.values2 <- na.omit(absence.values)
 
 testing.Nas <- cbind(occ_train, occ.train.values)
@@ -142,24 +142,67 @@ ranaModelDismo
 plot(ranaModelDismo)
 response(ranaModelDismo)
 
+predictExtent <- extent(-130, -100, 30, 45) # choose here what is reasonable for your pts
+
+
 # graph it
-geographicArea <- crop(clim, (25+extent(ranaDataSpatialPts)))
-ranaPredictPlot <- raster::predict(ranaModelDismo, geographicArea)
-plot(ranaPredictPlot, 
-     xlim = c(-138, -115))
+geographicArea <- crop(clim, predictExtent)
+
+ranaPredictPlot <- raster::predict(ranaModelDismo, geographicArea) 
 
 plot(ranaPredictPlot)
 
+#light evaluation
+# Evaluation indices include AUC, TSS, Sensitivity, Specificity, etc
+mod_eval_train <- dismo::evaluate(p = occ.train.values2, a = absence.values2, model = ranaModelDismo) 
+print(mod_eval_train)
+
+mod_eval_test <- dismo::evaluate(p = occ.test.values2, a = absence.values2, model = ranaModelDismo)
+print(mod_eval_test)  # training AUC may be higher than testing AUC
+
+
+# calculate thresholds of models
+thd1 <- threshold(mod_eval_train, "no_omission")  # 0% omission rate 
+thd2 <- threshold(mod_eval_train, "spec_sens")  # highest TSS
+
+plot(ranaPredictPlot, main='Maxent, raw values')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(occ_train, pch='+')
+points(occ_test, col = "pink")
+
+plot(ranaPredictPlot > thd2, main='presence/absence')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(occ_train, pch='+')
+points(occ_test, col = "pink")
 
 
 
+# model evaluation (cross validation, very fancy but good)
+
+# plotting points that are above the previously calculated
+# thresholded value
+plot(ranaPredictPlot >= thd1)
 
 
+# load the function that prepares parameters for maxent
+source("../code/Appendix2_prepPara.R")
 
+mod1_autofeature <- maxent(x=presence.absence.train.env.data[c("bio1","bio4","bio11")], 
+                           ## env conditions, here we selected only 3 predictors
+                           p=presence.absence.vector,
+                           ## 1:presence or 0:absence
+                           path="../output/maxent_outputs1_auto",
+                           ## this is the folder you will find manxent output
+                           args=prepPara(userfeatures=NULL) ) 
+## default is autofeature
 
-
-
-
+# or select Linear& Quadratic features
+mod1_lq <- maxent(x=pder[c("bio1","bio4","bio11")],
+                  p=pa,
+                  path=paste0("../output/maxent_outputs1_lq"),
+                  args=prepPara(userfeatures="LQ") ) 
+## default is autofeature, here LQ represents Linear& Quadratic
+## (L-linear, Q-Quadratic, H-Hinge, P-Product, T-Threshold)
 
 
 
