@@ -82,30 +82,6 @@ absence.values2 <- na.omit(absence.values)
 testing.Nas <- cbind(occ_train, occ.train.values)
 testing.Nas2 <- cbind(occ_test, occ.test.values)
 
-# Add the points for individual observation
-
-plot(wrld_simpl,
-     xlim = c(-130, -110), 
-     ylim = c(28, 45),
-     axes = T, 
-     col = "grey95")
-
-points(x = testing.Nas$longitude[testing.Nas$bio1 == "NA"], 
-       y = testing.Nas$latitude[testing.Nas$bio1 == "NA"], 
-       col = "pink", 
-       pch = 20, 
-       cex = 0.75)
-
-points(x = testing.Nas$longitude[testing.Nas$bio1 != "NA"], 
-       y = testing.Nas$latitude[testing.Nas$bio1 != "NA"], 
-       col = "green", 
-       pch = 20, 
-       cex = 0.75)
-
-points(x = absence.values2$longitude, 
-       y = absence.values2$latitude,
-       col = "black",
-       cex = 0.75)
 
 
 # Create data frame with presence training data and backround points (0 = abs, 1 = pres)
@@ -113,29 +89,13 @@ presence.absence.vector <- c(rep(1, nrow(occ.train.values2)), rep(0, nrow(absenc
 presence.absence.train.env.data <- as.data.frame(rbind(occ.train.values2, absence.values)) 
 # Mila: dimensions of these objects good bc = 2n(.5 * ranaData?)
 
-
-
-# train Maxent with tabular data
-ranaModel <- maxnet::maxnet(data = presence.absence.train.env.data, ## env conditions
-             p = presence.absence.vector)
-             ## parameter specification
-#)
-
-ranaModel
-plot(ranaModel)
-#response(ranaModel)
-#maxnet::response.plot(ranaModel)
-
-# the maxent functions runs a model in the default settings. To change these parameters,
-# you have to tell it what you want...i.e. response curves or the type of features
-
-
+## with dismo (java)
 ranaModelDismo <- dismo::maxent(x = presence.absence.train.env.data, ## env conditions
-                            p = presence.absence.vector,   ## 1:presence or 0:absence
-                            path=paste0("maxent_outputs"), ## folder for maxent output; 
-                            # if we do not specify a folder R will put the results in a temp file, 
-                            # and it gets messy to read those. . .
-                            args=c("responsecurves") ## parameter specification
+                                p = presence.absence.vector,   ## 1:presence or 0:absence
+                                path=paste0("maxent_outputs"), ## folder for maxent output; 
+                                # if we do not specify a folder R will put the results in a temp file, 
+                                # and it gets messy to read those. . .
+                                args=c("responsecurves") ## parameter specification
 )
 
 # view the maxent model 
@@ -151,8 +111,26 @@ geographicArea <- crop(clim, predictExtent)
 
 ranaPredictPlot <- raster::predict(ranaModelDismo, geographicArea) 
 
-ranaPredictPlotMaxnet <- raster::predict(ranaModel, geographicArea)
 plot(ranaPredictPlot)
+
+
+
+## with maxnet
+# train Maxent with tabular data
+ranaModel <- maxnet::maxnet(data = presence.absence.train.env.data, ## env conditions
+             p = presence.absence.vector)
+             ## parameter specification
+#)
+
+ranaModel
+plot(ranaModel)
+#response(ranaModel)
+#maxnet::response.plot(ranaModel)
+
+# the maxent functions runs a model in the default settings. To change these parameters,
+# you have to tell it what you want...i.e. response curves or the type of features
+
+
 
 
 
