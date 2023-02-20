@@ -27,7 +27,7 @@ ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude, latit
 ranaDataSpatialPts <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
 
 # climate data: use get data only once
-# getData("worldclim", var="bio", res=2.5) #not the correct name I think for the variable
+getData("worldclim", var="bio", res=2.5) #not the correct name I think for the variable
 
 clim_list <- list.files(path = "wc2-5/", pattern = ".bil$", 
                         full.names = T)  # '..' leads to the path above the folder where the .rmd file is located
@@ -139,6 +139,9 @@ terraPredictPlot <- terra::predict(geographicArea, ranaModelDismo)
 plot(terraPredictPlot)
 
 
+terraPredictPlotMaxnet <- terra::predict(geographicArea, ranaModel)
+
+plot(terraPredictPlotMaxnet)
 
 
 
