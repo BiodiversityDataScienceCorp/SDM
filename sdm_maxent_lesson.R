@@ -8,19 +8,21 @@ install.packages("dismo")
 install.packages("maptools")
 install.packages("tidyverse")
 install.packages("rJava")
+install.packages("maps")
 
 library(dismo)
 library(maptools)
 library(tidyverse)
 library(rJava)
+library(maps)
 
 ### Section 1: Obtaining and Formatting Occurence / Climate Data ### 
 
 # read occurrence data (stop to talk about camelCase)
-ranaDataNotCoordinates <- read_csv("ranaData.csv") %>% dplyr::select(longitude,latitude)
+ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude,latitude)
 
 # convert to spatial points, necessary for modelling and mapping
-ranaDataSpatialPts <- SpatialPoints(ranaData, proj4string = CRS("+proj=longlat"))
+ranaDataSpatialPts <- SpatialPoints(ranaDataNotCoords, proj4string = CRS("+proj=longlat"))
 
 # obtain climate data: use get data only once
 #getData("worldclim", var="bio", res=2.5) # current data
@@ -58,7 +60,7 @@ geographicExtent <- extent(x = ranaDataSpatialPts)
 set.seed(3489) # seed set so we get the same background points each time we run this code 
 backgroundPoints <- randomPoints(mask = mask, 
                                   n = 0.5 * nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
-                                  ext = geographic.extent, 
+                                  ext = geographicExtent, 
                                   extf = 1.25, # draw a slightly larger area than where our sp was found
                                   warn = 0) # don't complain about not having a coordinate reference system
 
@@ -103,7 +105,7 @@ response(ranaSDM) # . The curves show how the predicted probability of presence 
 # clim is huge and it isn't reasonable to predict over whole world
 # first we will make it smaller
 
-predictExtent <- 1.25 * geographic.extent # choose here what is reasonable for your pts
+predictExtent <- 1.25 * geographicExtent # choose here what is reasonable for your pts
 geographicArea <- crop(clim, predictExtent) # crop clim to the extent of the map you want
 ranaPredictPlot <- raster::predict(ranaSDM, geographicArea) # predict the model to 
 
