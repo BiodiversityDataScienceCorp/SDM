@@ -140,8 +140,37 @@ ggplot() +
 
 
 ### Section 7: Evaluate Model ### 
+# ASK KATY WHAT TO DO HERE
+set.seed(32) # seed set so we get the same background points each time we run this code 
+backgroundPoints2 <- randomPoints(mask = mask, 
+                                 n = 0.5 * nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
+                                 ext = geographic.extent, 
+                                 extf = 1.25, # draw a slightly larger area than where our sp was found
+                                 warn = 0) # don't complain about not having a coordinate reference system
 
+# add col names (can click and see right now they are x and y)
+colnames(backgroundPoints2) <- c("longitude", "latitude")
 
+  
+#simplest way to use 'evaluate'
+modEvalTest <- dismo::evaluate(ranaSDM, p=occTest, a=backgroundPoints2, x=clim)
+modEvalTest
+modEvalTrain <- dismo::evaluate(ranaSDM, p=occTrain, a=backgroundPoints, x=clim)
+modEvalTrain
+
+# calculate thresholds of models
+thd1 <- threshold(modEvalTrain, "no_omission")  # 0% omission rate 
+thd2 <- threshold(modEvalTrain, "spec_sens")  # highest TSS
+
+plot(ranaPredictPlot, main='Maxent, raw values')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(occ_train, pch='+')
+points(occ_test, col = "pink")
+
+plot(ranaPredictPlot > thd2, main='presence/absence')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(occ_train, pch='+')
+points(occ_test, col = "pink")
 
 
 
