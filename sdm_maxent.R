@@ -5,12 +5,14 @@ install.packages("maptools")
 install.packages("tidyverse")
 install.packages("maxnet")
 install.packages("rJava")
+install.packages("terra")
 
 library(dismo)
 library(maptools)
 library(tidyverse)
 library(maxnet)
 library(rJava)
+library(terra)
 
 # world map data
 data(wrld_simpl)
@@ -131,9 +133,10 @@ plot(ranaModel)
 # you have to tell it what you want...i.e. response curves or the type of features
 
 
+# predict from terra
+terraPredictPlot <- terra::predict(geographicArea, ranaModelDismo)
 
-
-
+plot(terraPredictPlot)
 
 
 
