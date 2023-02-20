@@ -2,6 +2,7 @@ github.R
 wc2-5/
 maxent_outputs/
 output/
+cmip5/
 
 # History files
 .Rhistory
