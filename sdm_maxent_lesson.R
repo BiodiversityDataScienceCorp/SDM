@@ -27,8 +27,6 @@ ranaDataSpatialPts <- SpatialPoints(ranaDataNotCoords, proj4string = CRS("+proj=
 # obtain climate data: use get data only once
 #getData("worldclim", var="bio", res=2.5) # current data
 # see what each variable is here: https://www.worldclim.org/data/bioclim.html#:~:text=The%20bioclimatic%20variables%20represent%20annual,the%20wet%20and%20dry%20quarters).
-#getData(name = "CMIP5", var = "bio", res = 2.5, year = 70, model = "IP", rcp = 85) # future data
-# ASK KATY: WHAT FUTURE PARAMETERS ARE GOOD
 #?raster::getData
 
 # create a list of the files in wc2-5 filder so we can make a raster stack
@@ -68,6 +66,7 @@ backgroundPoints <- randomPoints(mask = mask,
 colnames(backgroundPoints) <- c("longitude", "latitude")
 
 ### Section 3: Creating Training and Testing Data Sets ###
+# ASK KATY ABOUT TRAINING VS TESTING (don't split data do it all)
 # separate presence data into training model and testing model
 # randomly select 50% of data for training
 set.seed(78)
@@ -77,7 +76,12 @@ occTest <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selecti
 
 ### Section 4: Collate Env Data and Point Data into Proper Model Formats ### 
 # Data for observation sites (presence and background), with climate data
-occTrainEnv <- na.omit(raster::extract(x = clim, y = occTrain)) # why are there NA values ? all of the ranaD. has values ASK KATY
+# ASK KATY WHY NA VALUES and tag jeff in issues
+coordinates(occTrain) <- ~longitude + latitude
+
+occTrainEnv <- raster::extract(x = clim, y = ranaDataNotCoords) # why are there NA values ? all of the ranaD. has values ASK KATY
+foo <- raster::extract(x = clim, y = ranaDataSpatialPts)
+
 occTestEnv <- na.omit(raster::extract(x = clim, y = occTest)) # why are there NA values ? all of the ranaD. has values
 absenceEnv<- na.omit(raster::extract(x = clim, y = backgroundPoints)) # again, many NA values
 
@@ -93,7 +97,8 @@ ranaSDM <- dismo::maxent(x = presenceAbsenceEnvDf, ## env conditions
                                 path=paste0("maxent_outputs"), ## folder for maxent output; 
                                 # if we do not specify a folder R will put the results in a temp file, 
                                 # and it gets messy to read those. . .
-                                args=c("responsecurves") ## parameter specification: ASK KATY
+                                # args=c("responsecurves") ## parameter specification: 
+                        # ASK KATY: run model w/o 
 )
 
 # view the maxent model by navigating in maxent_outputs folder for the html
@@ -105,8 +110,10 @@ response(ranaSDM) # . The curves show how the predicted probability of presence 
 # clim is huge and it isn't reasonable to predict over whole world
 # first we will make it smaller
 
-predictExtent <- 1.25 * geographicExtent # choose here what is reasonable for your pts
-geographicArea <- crop(clim, predictExtent) # crop clim to the extent of the map you want
+predictExtent <- 1.5 * geographicExtent # choose here what is reasonable for your pts
+geographicArea <- crop(clim, predictExtent) # 
+# look at what buffers are, maybe this is where mapping problem is
+# crop clim to the extent of the map you want
 ranaPredictPlot <- raster::predict(ranaSDM, geographicArea) # predict the model to 
 
 # for ggplot, we need the prediction to be a data frame 
@@ -136,43 +143,9 @@ ggplot() +
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) +
   geom_point(data = ranaDataNotCoords, mapping = aes(x = longitude, y = latitude))
   
-  # not sure why there is a margin ... working on it
+  # not sure why there is a margin ... working on it ASK JEFF
 
 
-
-
-### Section 7: Evaluate Model ### 
-# ASK KATY WHAT TO DO HERE
-set.seed(32) # seed set so we get the same background points each time we run this code 
-backgroundPoints2 <- randomPoints(mask = mask, 
-                                 n = 0.5 * nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
-                                 ext = geographic.extent, 
-                                 extf = 1.25, # draw a slightly larger area than where our sp was found
-                                 warn = 0) # don't complain about not having a coordinate reference system
-
-# add col names (can click and see right now they are x and y)
-colnames(backgroundPoints2) <- c("longitude", "latitude")
-
-  
-#simplest way to use 'evaluate'
-modEvalTest <- dismo::evaluate(ranaSDM, p=occTest, a=backgroundPoints2, x=clim)
-modEvalTest
-modEvalTrain <- dismo::evaluate(ranaSDM, p=occTrain, a=backgroundPoints, x=clim)
-modEvalTrain
-
-# calculate thresholds of models
-thd1 <- threshold(modEvalTrain, "no_omission")  # 0% omission rate 
-thd2 <- threshold(modEvalTrain, "spec_sens")  # highest TSS
-
-plot(ranaPredictPlot, main='Maxent, raw values')
-plot(wrld_simpl, add=TRUE, border='dark grey')
-points(occ_train, pch='+')
-points(occ_test, col = "pink")
-
-plot(ranaPredictPlot > thd2, main='presence/absence')
-plot(wrld_simpl, add=TRUE, border='dark grey')
-points(occ_train, pch='+')
-points(occ_test, col = "pink")
 
 
 
