@@ -120,6 +120,7 @@ ranaPredictDf <- as.data.frame(raster.spdf)
 
 # plot in ggplot
 wrld <- ggplot2::map_data("world")
+
 xmax <- max(ranaPredictDf$x)
 xmin <- min(ranaPredictDf$x)
 ymax <- max(ranaPredictDf$y)
