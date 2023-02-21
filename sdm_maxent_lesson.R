@@ -67,28 +67,14 @@ colnames(backgroundPoints) <- c("longitude", "latitude")
 
 ### Section 3: Collate Env Data and Point Data into Proper Model Formats ### 
 # Data for observation sites (presence and background), with climate data
-occEnv <- raster::extract(x = clim, y = ranaDataNotCoords) # why are there NA values ? all of the ranaD. has values ASK KATY
-occEnvSptPts <- raster::extract(x = clim, y = ranaDataSpatialPts)
-absenceEnv<- raster::extract(x = clim, y = backgroundPoints) # again, many NA values
+occEnv <- na.omit(raster::extract(x = clim, y = ranaDataNotCoords))
+absenceEnv<- na.omit(raster::extract(x = clim, y = backgroundPoints))
 
 # Create data frame with presence training data and backround points (0 = abs, 1 = pres)
 presenceAbsenceV <- c(rep(1, nrow(occEnv)), rep(0, nrow(absenceEnv)))
 presenceAbsenceEnvDf <- as.data.frame(rbind(occEnv, absenceEnv)) 
 
-# testing why nas
-locationPA <- as.data.frame(rbind(ranaDataNotCoords, backgroundPoints))
-locationPAEnv <- as.data.frame(cbind(presenceAbsenceV, locationPA, presenceAbsenceEnvDf))
-ggplot() +
-  geom_polygon(data = wrld, mapping = aes(x = long, y = lat, group = group),
-                       fill = "grey75") +
-  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
-  scale_size_area() +
-  borders("state") +
-  geom_point(data = locationPAEnv[locationPAEnv$bio1!="NA",], aes(x = longitude, y = latitude, color = as.factor(presenceAbsenceV))) +
-  geom_point(data = locationPAEnv[locationPAEnv$bio1 =="NA",], aes(x = longitude, y = latitude, color = "green")) 
   
-  
-
 ### Section 4: Create SDM with Maxent ### 
 # create a new folder called maxent_outputs
 ranaSDM <- dismo::maxent(x = presenceAbsenceEnvDf, ## env conditions
