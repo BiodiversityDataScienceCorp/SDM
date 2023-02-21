@@ -89,15 +89,14 @@ ggplot() +
   
   
 
-### Section 5: Create SDM with Maxent ### 
+### Section 4: Create SDM with Maxent ### 
 # create a new folder called maxent_outputs
 ranaSDM <- dismo::maxent(x = presenceAbsenceEnvDf, ## env conditions
                                 p = presenceAbsenceV,   ## 1:presence or 0:absence
                                 path=paste0("maxent_outputs"), ## folder for maxent output; 
                                 # if we do not specify a folder R will put the results in a temp file, 
                                 # and it gets messy to read those. . .
-                                # args=c("responsecurves") ## parameter specification: 
-                        # ASK KATY: run model w/o 
+                              
 )
 
 # view the maxent model by navigating in maxent_outputs folder for the html
@@ -105,12 +104,12 @@ plot(ranaSDM) # shows the variable contribution of each one. which one contribut
 response(ranaSDM) # . The curves show how the predicted probability of presence changes 
 #           as each environmental variable is varied, keeping all other environmental variables at their average sample value.
 
-### Section 6: Plot the Model ###
+### Section 5: Plot the Model ###
 # clim is huge and it isn't reasonable to predict over whole world
 # first we will make it smaller
 
-predictExtent <- 1.5 * geographicExtent # choose here what is reasonable for your pts
-geographicArea <- crop(clim, predictExtent) # 
+predictExtent <- 1.25 * geographicExtent # choose here what is reasonable for your pts (where you got background pts from)
+geographicArea <- crop(clim, predictExtent, snap = "in") # 
 # look at what buffers are, maybe this is where mapping problem is
 # crop clim to the extent of the map you want
 ranaPredictPlot <- raster::predict(ranaSDM, geographicArea) # predict the model to 
@@ -132,17 +131,16 @@ ggplot() +
                fill = "grey75") +
   geom_raster(data = ranaPredictDf, aes(x = x, y = y, fill = layer)) + 
   scale_fill_gradientn(colors = terrain.colors(10, rev = T)) +
-  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax), expand = F) + # expand = F fixes weird margin
   scale_size_area() +
   borders("state") +
   labs(title = "SDM of R. boylii Under Current Climate Conditions",
        x = "longitude",
        y = "latitude",
-       fill = "Probability of Presence") +
+       fill = "Probability of Presence") + # or should we say env. suitability?
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) +
   geom_point(data = ranaDataNotCoords, mapping = aes(x = longitude, y = latitude))
   
-  # not sure why there is a margin ... working on it ASK JEFF
 
 
 
