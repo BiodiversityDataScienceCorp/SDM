@@ -55,40 +55,39 @@ mask <- raster(clim[[1]]) # mask is the raster object that determines the area w
 geographicExtent <- extent(x = ranaDataSpatialPts)
 
 # Random points for background (same number as our observed points we will use )
-set.seed(3489) # seed set so we get the same background points each time we run this code 
+set.seed(45) # seed set so we get the same background points each time we run this code 
 backgroundPoints <- randomPoints(mask = mask, 
-                                  n = 0.5 * nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
+                                  n = nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
                                   ext = geographicExtent, 
-                                  extf = 1.25, # draw a slightly larger area than where our sp was found
+                                  extf = 1.25, # draw a slightly larger area than where our sp was found (ask katy what is appropriate here)
                                   warn = 0) # don't complain about not having a coordinate reference system
 
 # add col names (can click and see right now they are x and y)
 colnames(backgroundPoints) <- c("longitude", "latitude")
 
-### Section 3: Creating Training and Testing Data Sets ###
-# ASK KATY ABOUT TRAINING VS TESTING (don't split data do it all)
-# separate presence data into training model and testing model
-# randomly select 50% of data for training
-set.seed(78)
-selected <- sample(1:nrow(ranaDataNotCoords), (0.5 * nrow(ranaDataNotCoords)))
-occTrain <- ranaDataNotCoords[selected, ]  # this is the selection to be used for model training
-occTest <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selection which will be used for model testing
-
-### Section 4: Collate Env Data and Point Data into Proper Model Formats ### 
+### Section 3: Collate Env Data and Point Data into Proper Model Formats ### 
 # Data for observation sites (presence and background), with climate data
-# ASK KATY WHY NA VALUES and tag jeff in issues
-coordinates(occTrain) <- ~longitude + latitude
-
-occTrainEnv <- raster::extract(x = clim, y = ranaDataNotCoords) # why are there NA values ? all of the ranaD. has values ASK KATY
-foo <- raster::extract(x = clim, y = ranaDataSpatialPts)
-
-occTestEnv <- na.omit(raster::extract(x = clim, y = occTest)) # why are there NA values ? all of the ranaD. has values
-absenceEnv<- na.omit(raster::extract(x = clim, y = backgroundPoints)) # again, many NA values
+occEnv <- raster::extract(x = clim, y = ranaDataNotCoords) # why are there NA values ? all of the ranaD. has values ASK KATY
+occEnvSptPts <- raster::extract(x = clim, y = ranaDataSpatialPts)
+absenceEnv<- raster::extract(x = clim, y = backgroundPoints) # again, many NA values
 
 # Create data frame with presence training data and backround points (0 = abs, 1 = pres)
-presenceAbsenceV <- c(rep(1, nrow(occTrainEnv)), rep(0, nrow(absenceEnv)))
-presenceAbsenceEnvDf <- as.data.frame(rbind(occTrainEnv, absenceEnv)) 
+presenceAbsenceV <- c(rep(1, nrow(occEnv)), rep(0, nrow(absenceEnv)))
+presenceAbsenceEnvDf <- as.data.frame(rbind(occEnv, absenceEnv)) 
 
+# testing why nas
+locationPA <- as.data.frame(rbind(ranaDataNotCoords, backgroundPoints))
+locationPAEnv <- as.data.frame(cbind(presenceAbsenceV, locationPA, presenceAbsenceEnvDf))
+ggplot() +
+  geom_polygon(data = wrld, mapping = aes(x = long, y = lat, group = group),
+                       fill = "grey75") +
+  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  scale_size_area() +
+  borders("state") +
+  geom_point(data = locationPAEnv[locationPAEnv$bio1!="NA",], aes(x = longitude, y = latitude, color = as.factor(presenceAbsenceV))) +
+  geom_point(data = locationPAEnv[locationPAEnv$bio1 =="NA",], aes(x = longitude, y = latitude, color = "green")) 
+  
+  
 
 ### Section 5: Create SDM with Maxent ### 
 # create a new folder called maxent_outputs
