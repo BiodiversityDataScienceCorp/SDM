@@ -1,3 +1,6 @@
+install.packages("geodata")
+library("geodata")
+
 # future SDM
 
 # get climate data
@@ -6,9 +9,12 @@ futureEnv <- raster::getData(name = 'CMIP5', var = 'bio', res = 10,
 
 names(futureEnv)=names(currentEnv)
 
+bio10 <- cmip6_world("CNRM-CM6-1", "585", "2061-2080", res=10, path="cmip6")
+
+plot(bio10)
 
 # predict  model onto future climate 
-geographicAreaFuture <- crop(futureEnv, predictExtent)
+geographicAreaFuture <- crop(bio10, predictExtent)
 
 # crop clim to the extent of the map you want
 ranaPredictPlotFuture <- raster::predict(ranaSDM, geographicAreaFuture) # predict the model to 
