@@ -25,7 +25,7 @@ ranaDataNotCoords <- read_csv("ranaData.csv") %>% dplyr::select(longitude,latitu
 ranaDataSpatialPts <- SpatialPoints(ranaDataNotCoords, proj4string = CRS("+proj=longlat"))
 
 # obtain climate data: use get data only once
-#getData("worldclim", var="bio", res=2.5) # current data
+currentEnv <- getData("worldclim", var="bio", res=2.5) # current data
 # see what each variable is here: https://www.worldclim.org/data/bioclim.html#:~:text=The%20bioclimatic%20variables%20represent%20annual,the%20wet%20and%20dry%20quarters).
 #?raster::getData
 
@@ -140,8 +140,7 @@ ggplot() +
        x = "longitude",
        y = "latitude",
        fill = "Probability of Presence") +
-  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) +
-  geom_point(data = ranaDataNotCoords, mapping = aes(x = longitude, y = latitude))
+  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5))
   
   # not sure why there is a margin ... working on it ASK JEFF
 
