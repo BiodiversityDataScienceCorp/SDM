@@ -124,17 +124,9 @@ ggplot() +
   labs(title = "SDM of R. boylii Under Current Climate Conditions",
        x = "longitude",
        y = "latitude",
-<<<<<<< HEAD
        fill = "Probability of Presence") +
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5))
-=======
-       fill = "Probability of Presence") + # or should we say env. suitability?
-  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) +
-  geom_point(data = ranaDataNotCoords, mapping = aes(x = longitude, y = latitude))
->>>>>>> 793388adae5a12edb3e340d0e791598db7055c8b
-  
-
-
-
+       fill = "Environmental Suitability")
+  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) 
 
 

@@ -39,6 +39,5 @@ ggplot() +
        fill = "Probability of Presence") +
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) 
 
-# not sure why there is a margin ... working on it ASK JEFF
 
 
