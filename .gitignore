@@ -3,6 +3,7 @@ wc2-5/
 maxent_outputs/
 output/
 cmip5/
+cmip6/
 
 # History files
 .Rhistory
