@@ -55,50 +55,34 @@ mask <- raster(clim[[1]]) # mask is the raster object that determines the area w
 geographicExtent <- extent(x = ranaDataSpatialPts)
 
 # Random points for background (same number as our observed points we will use )
-set.seed(3489) # seed set so we get the same background points each time we run this code 
+set.seed(45) # seed set so we get the same background points each time we run this code 
 backgroundPoints <- randomPoints(mask = mask, 
-                                  n = 0.5 * nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
+                                  n = nrow(ranaDataNotCoords), # n should be same n as in the pts to be used to test
                                   ext = geographicExtent, 
-                                  extf = 1.25, # draw a slightly larger area than where our sp was found
+                                  extf = 1.25, # draw a slightly larger area than where our sp was found (ask katy what is appropriate here)
                                   warn = 0) # don't complain about not having a coordinate reference system
 
 # add col names (can click and see right now they are x and y)
 colnames(backgroundPoints) <- c("longitude", "latitude")
 
-### Section 3: Creating Training and Testing Data Sets ###
-# ASK KATY ABOUT TRAINING VS TESTING (don't split data do it all)
-# separate presence data into training model and testing model
-# randomly select 50% of data for training
-set.seed(78)
-selected <- sample(1:nrow(ranaDataNotCoords), (0.5 * nrow(ranaDataNotCoords)))
-occTrain <- ranaDataNotCoords[selected, ]  # this is the selection to be used for model training
-occTest <- ranaDataNotCoords[-selected, ]  # this is the opposite of the selection which will be used for model testing
-
-### Section 4: Collate Env Data and Point Data into Proper Model Formats ### 
+### Section 3: Collate Env Data and Point Data into Proper Model Formats ### 
 # Data for observation sites (presence and background), with climate data
-# ASK KATY WHY NA VALUES and tag jeff in issues
-coordinates(occTrain) <- ~longitude + latitude
-
-occTrainEnv <- raster::extract(x = clim, y = ranaDataNotCoords) # why are there NA values ? all of the ranaD. has values ASK KATY
-foo <- raster::extract(x = clim, y = ranaDataSpatialPts)
-
-occTestEnv <- na.omit(raster::extract(x = clim, y = occTest)) # why are there NA values ? all of the ranaD. has values
-absenceEnv<- na.omit(raster::extract(x = clim, y = backgroundPoints)) # again, many NA values
+occEnv <- na.omit(raster::extract(x = clim, y = ranaDataNotCoords))
+absenceEnv<- na.omit(raster::extract(x = clim, y = backgroundPoints))
 
 # Create data frame with presence training data and backround points (0 = abs, 1 = pres)
-presenceAbsenceV <- c(rep(1, nrow(occTrainEnv)), rep(0, nrow(absenceEnv)))
-presenceAbsenceEnvDf <- as.data.frame(rbind(occTrainEnv, absenceEnv)) 
+presenceAbsenceV <- c(rep(1, nrow(occEnv)), rep(0, nrow(absenceEnv)))
+presenceAbsenceEnvDf <- as.data.frame(rbind(occEnv, absenceEnv)) 
 
-
-### Section 5: Create SDM with Maxent ### 
+  
+### Section 4: Create SDM with Maxent ### 
 # create a new folder called maxent_outputs
 ranaSDM <- dismo::maxent(x = presenceAbsenceEnvDf, ## env conditions
                                 p = presenceAbsenceV,   ## 1:presence or 0:absence
                                 path=paste0("maxent_outputs"), ## folder for maxent output; 
                                 # if we do not specify a folder R will put the results in a temp file, 
                                 # and it gets messy to read those. . .
-                                # args=c("responsecurves") ## parameter specification: 
-                        # ASK KATY: run model w/o 
+                              
 )
 
 # view the maxent model by navigating in maxent_outputs folder for the html
@@ -106,12 +90,12 @@ plot(ranaSDM) # shows the variable contribution of each one. which one contribut
 response(ranaSDM) # . The curves show how the predicted probability of presence changes 
 #           as each environmental variable is varied, keeping all other environmental variables at their average sample value.
 
-### Section 6: Plot the Model ###
+### Section 5: Plot the Model ###
 # clim is huge and it isn't reasonable to predict over whole world
 # first we will make it smaller
 
-predictExtent <- 1.5 * geographicExtent # choose here what is reasonable for your pts
-geographicArea <- crop(clim, predictExtent) # 
+predictExtent <- 1.25 * geographicExtent # choose here what is reasonable for your pts (where you got background pts from)
+geographicArea <- crop(clim, predictExtent, snap = "in") # 
 # look at what buffers are, maybe this is where mapping problem is
 # crop clim to the extent of the map you want
 ranaPredictPlot <- raster::predict(ranaSDM, geographicArea) # predict the model to 
@@ -122,6 +106,7 @@ ranaPredictDf <- as.data.frame(raster.spdf)
 
 # plot in ggplot
 wrld <- ggplot2::map_data("world")
+
 xmax <- max(ranaPredictDf$x)
 xmin <- min(ranaPredictDf$x)
 ymax <- max(ranaPredictDf$y)
@@ -133,16 +118,21 @@ ggplot() +
                fill = "grey75") +
   geom_raster(data = ranaPredictDf, aes(x = x, y = y, fill = layer)) + 
   scale_fill_gradientn(colors = terrain.colors(10, rev = T)) +
-  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +
+  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax), expand = F) + # expand = F fixes weird margin
   scale_size_area() +
   borders("state") +
   labs(title = "SDM of R. boylii Under Current Climate Conditions",
        x = "longitude",
        y = "latitude",
+<<<<<<< HEAD
        fill = "Probability of Presence") +
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5))
+=======
+       fill = "Probability of Presence") + # or should we say env. suitability?
+  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) +
+  geom_point(data = ranaDataNotCoords, mapping = aes(x = longitude, y = latitude))
+>>>>>>> 793388adae5a12edb3e340d0e791598db7055c8b
   
-  # not sure why there is a margin ... working on it ASK JEFF
 
 
 
