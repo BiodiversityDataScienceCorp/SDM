@@ -79,7 +79,7 @@ presenceAbsenceEnvDf <- as.data.frame(rbind(occEnv, absenceEnv))
 # create a new folder called maxent_outputs
 ranaSDM <- dismo::maxent(x = presenceAbsenceEnvDf, ## env conditions
                                 p = presenceAbsenceV,   ## 1:presence or 0:absence
-                                path=paste0("maxent_outputs"), ## folder for maxent output; 
+                                path=paste("maxent_outputs"), ## folder for maxent output; 
                                 # if we do not specify a folder R will put the results in a temp file, 
                                 # and it gets messy to read those. . .
                               
@@ -124,9 +124,7 @@ ggplot() +
   labs(title = "SDM of R. boylii Under Current Climate Conditions",
        x = "longitude",
        y = "latitude",
-       fill = "Probability of Presence") +
-  theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5))
-       fill = "Environmental Suitability")
+       fill = "Environmental Suitability") +
   theme(legend.box.background=element_rect(),legend.box.margin=margin(5,5,5,5)) 
 
 
